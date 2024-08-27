@@ -28,19 +28,50 @@ from paho.mqtt import client as mqtt_client
 
 BROKER = 'broker.emqx.io'
 PORT = 1883
-TOPIC = "python-mqtt/tcp"
+TOPIC = "python/mqtt"
 # generate client ID with pub prefix randomly
-CLIENT_ID = f'python-mqtt-tcp-pub-sub-{random.randint(0, 1000)}'
+CLIENT_ID = f'python-mqtt-{random.randint(0, 1000)}'
 USERNAME = 'emqx'
 PASSWORD = 'public'
 
-FIRST_RECONNECT_DELAY = 1
-RECONNECT_RATE = 2
-MAX_RECONNECT_COUNT = 12
-MAX_RECONNECT_DELAY = 60
-
-FLAG_EXIT = False
-
 
 def connect_mqtt(): 
-    pass
+    def on_connect(client, userdata, flags, rc): 
+        if rc == 0: 
+            print('Connected to MQTT Broker') 
+
+        else: 
+            print(f'Failed to connect, return code {rc}') 
+
+    client = mqtt_client.Client(CLIENT_ID)  
+    client.username_pw_set(username=USERNAME, password=PASSWORD) 
+    client.on_connect = on_connect 
+    client.connect(BROKER, PORT) 
+    return client 
+
+
+def publish(client): 
+    msg_count = 1 
+    while True: 
+        time.sleep(1) 
+        msg = f'Messages: {msg_count}' 
+        result = client.publish(TOPIC, msg) 
+
+        status = result[0] 
+        if status == 0: 
+            print(f'send {msg} to topic: {TOPIC}') 
+        else: 
+            print(f'Failed to send message to topic {TOPIC}') 
+        msg_count += 1 
+        if msg_count > 5: 
+            break 
+
+def run(): 
+    client = connect_mqtt() 
+    client.loop_start()
+    publish(client) 
+    client.loop_stop()  
+
+
+if __name__ == '__main__': 
+    run()
